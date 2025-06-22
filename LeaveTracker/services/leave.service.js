@@ -13,9 +13,6 @@ const createLeave = async ( userId, type, from, to ) => {
 const getLeaves = async ( userId ) => {
     try {
         const leaves = Leave.find({ userId });
-        if(!leaves){
-            throw new Error('the user has not taken any leave')
-        }
         return leaves;
     } catch (error) {
         throw new Error(error.message || "Error while fetching leaves");

@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const leaveSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -52,14 +53,13 @@ const leaveSchema = new mongoose.Schema({
       "rejected",
       "shorten_requested",
       "shorten_approved",
-      "shorten_rejected",
       "extended_requested",
       "extended_approved",
-      "extended_rejected",
-      "cancel_requested",
       "cancelled",
-      "cancel_rejected",
     ],
     default: "pending",
   },
 }, { timestamps: true });
+
+const Leave = mongoose.model("Leave",leaveSchema);
+module.exports = Leave;

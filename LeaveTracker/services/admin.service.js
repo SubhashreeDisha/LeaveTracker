@@ -1,6 +1,5 @@
 const Leave = require("../models/leave.model");
 const Employee = require("../models/employee.model");
-const { getDateDifferenceInDays } = require("../helper/getDays.helper");
 const calculateLeaveDays = require("../helper/getNumberOfDays.helper");
 
 const pendingLeaves = async () => {
@@ -62,20 +61,40 @@ const approveLeave = async (leaveId) => {
       leave.from,
       leave.to
     );
-    if (numberOfDays > user.leaveBalance[leave.type]) {
-      leave.status = "rejected";
-      await leave.save();
-      throw new error(
-        "the leave request is rejected due to insufficient leave balance"
+    if (leave.status === "pending") {
+      if (numberOfDays > user.leaveBalance[leave.type]) {
+        leave.status = "rejected";
+        await leave.save();
+        throw new error(
+          "the leave request is rejected due to insufficient leave balance"
+        );
+      }
+      user.leaveBalance[leave.type] -= numberOfDays;
+      leave.status = "approved";
+    } else if (leave.status === "extended_requested") {
+      const previouslyDeletedDays = await calculateLeaveDays(
+        leave.type,
+        leave.from,
+        leave.previousTo
       );
+      // console.log(previouslyDeletedDays);
+      // console.log(numberOfDays);
+      // console.log(user.leaveBalance[leave.type]);
+      const totalNoOfDaysToDelete = numberOfDays - previouslyDeletedDays;
+      if (totalNoOfDaysToDelete > user.leaveBalance[leave.type]) {
+        leave.status = "approved";
+        leave.to = leave.previousTo;
+        leave.previousTo = null;
+        throw new Error(
+          "due to insufficient leaveBalance extended leave cannt be approved.so status rollback to the previous state"
+        );
+      }
+
+      leave.status = "extended_approved";
+      user.leaveBalance[leave.type] -= totalNoOfDaysToDelete;
     }
-    leave.status = "approved";
     await leave.save();
-
-    user.leaveBalance[leave.type] -= numberOfDays;
     await user.save();
-
-    
   } catch (error) {
     throw new Error(
       error.message || "Error While Fetching the approving leaves"
